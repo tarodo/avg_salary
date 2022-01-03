@@ -1,11 +1,13 @@
 import os
+from typing import Optional, Callable
 
 import requests
 from dotenv import load_dotenv
 from terminaltables import AsciiTable
 
 
-def get_hh_access_token(client_id: str, client_secret: str):
+def get_hh_access_token(client_id: str, client_secret: str) -> Optional[str]:
+    """Get access token to HeadHunter api service"""
     url_auth = "https://hh.ru/oauth/token"
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
     request_body = {
@@ -22,7 +24,10 @@ def get_hh_access_token(client_id: str, client_secret: str):
         return None
 
 
-def get_sj_access_token(email, password, client_id: str, client_secret: str):
+def get_sj_access_token(
+    email, password, client_id: str, client_secret: str
+) -> Optional[str]:
+    """Get access token to SuperJob api service"""
     url_auth = "https://api.superjob.ru/2.0/oauth2/password/"
     headers = {"X-Api-App-Id": client_secret}
     params = {
@@ -40,21 +45,12 @@ def get_sj_access_token(email, password, client_id: str, client_secret: str):
         return None
 
 
-def test_hh_token(access_token: str):
-    url = "https://api.hh.ru/me"
-    headers = {"Authorization": f"Bearer {access_token}"}
-    response = requests.get(url, headers=headers)
-    if response.status_code == 200:
-        return True
-
-    return False
-
-
-def get_all_hh_vacancies(access_token, area, languages):
+def get_all_hh_vacancies(access_token: str, area: int, hh_languages: tuple) -> dict:
+    """Collect vacancies from HeadHunter"""
     url = "https://api.hh.ru/vacancies"
     headers = {"Authorization": f"Bearer {access_token}"}
     language_vacancies = {}
-    for language in languages:
+    for language in hh_languages:
         language_vacancies[language] = {}
         language_vacancies[language]["items"] = []
         language_vacancies[language]["found"] = 0
@@ -73,11 +69,14 @@ def get_all_hh_vacancies(access_token, area, languages):
     return language_vacancies
 
 
-def get_all_sj_vacancies(access_token, client_secret, town, languages):
+def get_all_sj_vacancies(
+    access_token: str, client_secret: str, town: int, sj_languages: tuple
+) -> dict:
+    """Collect vacancies from SuperJob"""
     url = "https://api.superjob.ru/2.0/vacancies/"
     headers = {"X-Api-App-Id": client_secret, "Authorization": f"Bearer {access_token}"}
     language_vacancies = {}
-    for language in languages:
+    for language in sj_languages:
         language_vacancies[language] = {}
         language_vacancies[language]["items"] = []
         language_vacancies[language]["found"] = 0
@@ -90,7 +89,6 @@ def get_all_sj_vacancies(access_token, client_secret, town, languages):
                 "keyword": language,
                 "count": 100,
                 "page": page,
-                "catalogues": 48,
             }
             response = requests.get(url, headers=headers, params=params)
             response.raise_for_status()
@@ -103,7 +101,8 @@ def get_all_sj_vacancies(access_token, client_secret, town, languages):
     return language_vacancies
 
 
-def predict_hh_rub_salary(vacancy):
+def predict_hh_rub_salary(vacancy: dict) -> Optional[int]:
+    """Handle salary from one vacancy from HeadHunter"""
     salary = vacancy["salary"]
     if not salary:
         return None
@@ -118,7 +117,8 @@ def predict_hh_rub_salary(vacancy):
     return int(salary["from"] + (salary["to"] - salary["from"]) / 2)
 
 
-def predict_sj_rub_salary(vacancy):
+def predict_sj_rub_salary(vacancy: dict) -> Optional[int]:
+    """Handle salary from one vacancy from SuperJob"""
     if not vacancy["payment_from"]:
         if not vacancy["payment_to"]:
             return None
@@ -130,14 +130,20 @@ def predict_sj_rub_salary(vacancy):
     )
 
 
-def collect_average_salary(vacancies, predict_func):
+def collect_average_salary(vacancies: dict, predictor: Callable) -> dict:
+    """
+    Handle all vacancies from the platform.
+    :param vacancies: vacancies from platform language
+    :param predictor: function to predict salary of vacancy
+    :return: language: {vacancies_found: int, vacancies_processed: int, average_salary: int}
+    """
     language_salary = {}
     for language, language_vacancies in vacancies.items():
         language_stat = {"vacancies_found": language_vacancies["found"]}
         sum_salary = 0
         salary_num = 0
         for vacancy in language_vacancies["items"]:
-            rub_salary = predict_func(vacancy)
+            rub_salary = predictor(vacancy)
             if rub_salary is not None:
                 sum_salary += rub_salary
                 salary_num += 1
@@ -155,8 +161,7 @@ def print_statistic(stats, title):
         "Средняя зарплата",
     ]
 
-    rows = []
-    rows.append(headers)
+    rows = [headers]
 
     for language, vacancies_params in stats.items():
         rows.append([language, *vacancies_params.values()])
