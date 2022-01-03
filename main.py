@@ -40,34 +40,28 @@ def get_all_vacancies(access_token, area, languages):
     }
     language_vacancies = {}
     for language in languages:
-        params = {
-            "text": language,
-            "area": area
-        }
-        response = requests.get(url, headers=headers, params=params)
-        response.raise_for_status()
-        vacancies = response.json()
-        language_vacancies[language] = vacancies
+        language_vacancies[language] = {}
+        language_vacancies[language]["items"] = []
+        language_vacancies[language]["found"] = 0
+        page = 0
+        pages = 1
+        while page < pages:
+            params = {
+                "text": language,
+                "area": area,
+                "per_page": 100,
+                "page": page
+            }
+            response = requests.get(url, headers=headers, params=params)
+            response.raise_for_status()
+            vacancies = response.json()
+            pages = vacancies["pages"]
+            language_vacancies[language]["items"] += vacancies["items"]
+            language_vacancies[language]["found"] += len(vacancies["items"])
+            page += 1
+            print(f"{language} :: {page} of {pages} :: Done")
 
     return language_vacancies
-
-
-def get_language_salary(access_token, language, area):
-    url = "https://api.hh.ru/vacancies"
-    headers = {
-        "Authorization": f"Bearer {access_token}"
-    }
-    params = {
-        "text": language,
-        "area": area
-    }
-    response = requests.get(url, headers=headers, params=params)
-    response.raise_for_status()
-    vacancies = response.json()
-    vacancies_salary = []
-    for vacancy in vacancies["items"]:
-        vacancies_salary.append(vacancy["salary"])
-    return vacancies_salary
 
 
 def predict_rub_salary(vacancy):
@@ -85,6 +79,25 @@ def predict_rub_salary(vacancy):
     return int(salary["from"] + (salary["to"] - salary["from"]) / 2)
 
 
+def collect_average_salary(vacancies):
+    language_salary = {}
+    for language, language_vacancies in all_vacancies.items():
+        language_stat = {
+            "vacancies_found": language_vacancies["found"]
+        }
+        sum_salary = 0
+        salary_num = 0
+        for vacancy in language_vacancies["items"]:
+            rub_salary = predict_rub_salary(vacancy)
+            if rub_salary is not None:
+                sum_salary += rub_salary
+                salary_num += 1
+        language_stat["vacancies_processed"] = salary_num
+        language_stat["average_salary"] = int(sum_salary/salary_num)
+        language_salary[language] = language_stat
+    return language_salary
+
+
 if __name__ == "__main__":
     load_dotenv()
     client_id = os.getenv("CLIENT_ID")
@@ -94,10 +107,8 @@ if __name__ == "__main__":
         hh_token = get_access_token(client_id, client_secret)
 
     languages = (
-        "Python",
+        "Python", "Java"
     )
     all_vacancies = get_all_vacancies(hh_token, 1, languages)
-    for language, language_vacancies in all_vacancies.items():
-        for vacancy in language_vacancies["items"]:
-            avg_salary = predict_rub_salary(vacancy)
-            print(f"{avg_salary}")
+
+    print(collect_average_salary(all_vacancies))
