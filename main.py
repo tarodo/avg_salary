@@ -7,11 +7,11 @@ from terminaltables import AsciiTable
 
 def get_hh_access_token(client_id: str, client_secret: str):
     url_auth = "https://hh.ru/oauth/token"
-    headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+    headers = {"Content-Type": "application/x-www-form-urlencoded"}
     request_body = {
         "grant_type": "client_credentials",
         "client_id": client_id,
-        "client_secret": client_secret
+        "client_secret": client_secret,
     }
     response = requests.post(url_auth, data=request_body, headers=headers)
     try:
@@ -24,12 +24,12 @@ def get_hh_access_token(client_id: str, client_secret: str):
 
 def get_sj_access_token(email, password, client_id: str, client_secret: str):
     url_auth = "https://api.superjob.ru/2.0/oauth2/password/"
-    headers = {'X-Api-App-Id': client_secret}
+    headers = {"X-Api-App-Id": client_secret}
     params = {
         "login": email,
         "password": password,
         "client_id": client_id,
-        "client_secret": client_secret
+        "client_secret": client_secret,
     }
     response = requests.post(url_auth, params=params, headers=headers)
     try:
@@ -42,9 +42,7 @@ def get_sj_access_token(email, password, client_id: str, client_secret: str):
 
 def test_hh_token(access_token: str):
     url = "https://api.hh.ru/me"
-    headers = {
-        "Authorization": f"Bearer {access_token}"
-    }
+    headers = {"Authorization": f"Bearer {access_token}"}
     response = requests.get(url, headers=headers)
     if response.status_code == 200:
         return True
@@ -54,9 +52,7 @@ def test_hh_token(access_token: str):
 
 def get_all_hh_vacancies(access_token, area, languages):
     url = "https://api.hh.ru/vacancies"
-    headers = {
-        "Authorization": f"Bearer {access_token}"
-    }
+    headers = {"Authorization": f"Bearer {access_token}"}
     language_vacancies = {}
     for language in languages:
         language_vacancies[language] = {}
@@ -65,12 +61,7 @@ def get_all_hh_vacancies(access_token, area, languages):
         page = 0
         pages = 1
         while page < pages:
-            params = {
-                "text": language,
-                "area": area,
-                "per_page": 100,
-                "page": page
-            }
+            params = {"text": language, "area": area, "per_page": 100, "page": page}
             response = requests.get(url, headers=headers, params=params)
             response.raise_for_status()
             hh_vacancies = response.json()
@@ -84,10 +75,7 @@ def get_all_hh_vacancies(access_token, area, languages):
 
 def get_all_sj_vacancies(access_token, client_secret, town, languages):
     url = "https://api.superjob.ru/2.0/vacancies/"
-    headers = {
-        'X-Api-App-Id': client_secret,
-        "Authorization": f"Bearer {access_token}"
-    }
+    headers = {"X-Api-App-Id": client_secret, "Authorization": f"Bearer {access_token}"}
     language_vacancies = {}
     for language in languages:
         language_vacancies[language] = {}
@@ -102,7 +90,7 @@ def get_all_sj_vacancies(access_token, client_secret, town, languages):
                 "keyword": language,
                 "count": 100,
                 "page": page,
-                "catalogues": 48
+                "catalogues": 48,
             }
             response = requests.get(url, headers=headers, params=params)
             response.raise_for_status()
@@ -137,15 +125,15 @@ def predict_sj_rub_salary(vacancy):
         return int(vacancy["payment_to"] * 0.8)
     if not vacancy["payment_to"]:
         return int(vacancy["payment_from"] * 1.2)
-    return int(vacancy["payment_from"] + (vacancy["payment_to"] - vacancy["payment_from"]) / 2)
+    return int(
+        vacancy["payment_from"] + (vacancy["payment_to"] - vacancy["payment_from"]) / 2
+    )
 
 
 def collect_average_salary(vacancies, predict_func):
     language_salary = {}
     for language, language_vacancies in vacancies.items():
-        language_stat = {
-            "vacancies_found": language_vacancies["found"]
-        }
+        language_stat = {"vacancies_found": language_vacancies["found"]}
         sum_salary = 0
         salary_num = 0
         for vacancy in language_vacancies["items"]:
@@ -154,7 +142,7 @@ def collect_average_salary(vacancies, predict_func):
                 sum_salary += rub_salary
                 salary_num += 1
         language_stat["vacancies_processed"] = salary_num
-        language_stat["average_salary"] = int(sum_salary/salary_num)
+        language_stat["average_salary"] = int(sum_salary / salary_num)
         language_salary[language] = language_stat
     return language_salary
 
@@ -164,7 +152,7 @@ def print_statistic(stats, title):
         "Язык программирования",
         "Вакансий найдено",
         "Вакансий обработано",
-        "Средняя зарплата"
+        "Средняя зарплата",
     ]
 
     rows = []
@@ -186,7 +174,16 @@ if __name__ == "__main__":
         hh_token = get_hh_access_token(client_hh_id, client_hh_secret)
 
     languages = (
-        "Python", "Java", "C#", "PHP", "Go", "JavaScript", "Java", "VBA", "1С", "SQL"
+        "Python",
+        "Java",
+        "C#",
+        "PHP",
+        "Go",
+        "JavaScript",
+        "Java",
+        "VBA",
+        "1С",
+        "SQL",
     )
     all_hh_vacancies = get_all_hh_vacancies(hh_token, 1, languages)
     hh_average_salary = collect_average_salary(all_hh_vacancies, predict_hh_rub_salary)
