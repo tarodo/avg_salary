@@ -2,6 +2,7 @@ import os
 
 import requests
 from dotenv import load_dotenv
+from terminaltables import AsciiTable
 
 
 def get_hh_access_token(client_id: str, client_secret: str):
@@ -77,7 +78,6 @@ def get_all_hh_vacancies(access_token, area, languages):
             language_vacancies[language]["items"] += hh_vacancies["items"]
             language_vacancies[language]["found"] += len(hh_vacancies["items"])
             page += 1
-            print(f"{language} :: {page} of {pages} :: Done")
 
     return language_vacancies
 
@@ -101,7 +101,8 @@ def get_all_sj_vacancies(access_token, client_secret, town, languages):
                 "town": town,
                 "keyword": language,
                 "count": 100,
-                "page": page
+                "page": page,
+                "catalogues": 48
             }
             response = requests.get(url, headers=headers, params=params)
             response.raise_for_status()
@@ -110,7 +111,6 @@ def get_all_sj_vacancies(access_token, client_secret, town, languages):
             page += 1
             language_vacancies[language]["items"] += sj_vacancies["objects"]
             language_vacancies[language]["found"] += len(sj_vacancies["objects"])
-            print(f"{language} :: {page} :: Done")
 
     return language_vacancies
 
@@ -159,6 +159,24 @@ def collect_average_salary(vacancies, predict_func):
     return language_salary
 
 
+def print_statistic(stats, title):
+    headers = [
+        "Язык программирования",
+        "Вакансий найдено",
+        "Вакансий обработано",
+        "Средняя зарплата"
+    ]
+
+    rows = []
+    rows.append(headers)
+
+    for language, vacancies_params in stats.items():
+        rows.append([language, *vacancies_params.values()])
+
+    table_instance = AsciiTable(rows, title)
+    print(table_instance.table)
+
+
 if __name__ == "__main__":
     load_dotenv()
     client_hh_id = os.getenv("HH_CLIENT_ID")
@@ -168,11 +186,10 @@ if __name__ == "__main__":
         hh_token = get_hh_access_token(client_hh_id, client_hh_secret)
 
     languages = (
-        "Python", "Java"
+        "Python", "Java", "C#", "PHP", "Go", "JavaScript", "Java", "VBA", "1С", "SQL"
     )
     all_hh_vacancies = get_all_hh_vacancies(hh_token, 1, languages)
     hh_average_salary = collect_average_salary(all_hh_vacancies, predict_hh_rub_salary)
-    print(hh_average_salary)
 
     client_sj_id = os.getenv("SJ_CLIENT_ID")
     client_sj_secret = os.getenv("SJ_CLIENT_SECRET")
@@ -181,4 +198,6 @@ if __name__ == "__main__":
     sj_token = get_sj_access_token(sj_email, sj_pass, client_sj_id, client_sj_secret)
     all_sj_vacancies = get_all_sj_vacancies(sj_token, client_sj_secret, 4, languages)
     sj_average_salary = collect_average_salary(all_sj_vacancies, predict_sj_rub_salary)
-    print(sj_average_salary)
+
+    print_statistic(hh_average_salary, "HeadHunter Moscow")
+    print_statistic(sj_average_salary, "SuperJob Moscow")
