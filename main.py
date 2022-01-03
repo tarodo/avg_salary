@@ -4,7 +4,7 @@ import requests
 from dotenv import load_dotenv
 
 
-def get_access_token(client_id: str, client_secret: str):
+def get_hh_access_token(client_id: str, client_secret: str):
     url_auth = "https://hh.ru/oauth/token"
     headers = {'Content-Type': 'application/x-www-form-urlencoded'}
     request_body = {
@@ -13,6 +13,24 @@ def get_access_token(client_id: str, client_secret: str):
         "client_secret": client_secret
     }
     response = requests.post(url_auth, data=request_body, headers=headers)
+    try:
+        response.raise_for_status()
+        return response.json()["access_token"]
+
+    except requests.exceptions.HTTPError:
+        return None
+
+
+def get_sj_access_token(email, password, client_id: str, client_secret: str):
+    url_auth = "https://api.superjob.ru/2.0/oauth2/password/"
+    headers = {'X-Api-App-Id': client_secret}
+    params = {
+        "login": email,
+        "password": password,
+        "client_id": client_id,
+        "client_secret": client_secret
+    }
+    response = requests.post(url_auth, params=params, headers=headers)
     try:
         response.raise_for_status()
         return response.json()["access_token"]
@@ -33,7 +51,7 @@ def test_hh_token(access_token: str):
     return False
 
 
-def get_all_vacancies(access_token, area, languages):
+def get_all_hh_vacancies(access_token, area, languages):
     url = "https://api.hh.ru/vacancies"
     headers = {
         "Authorization": f"Bearer {access_token}"
@@ -54,17 +72,50 @@ def get_all_vacancies(access_token, area, languages):
             }
             response = requests.get(url, headers=headers, params=params)
             response.raise_for_status()
-            vacancies = response.json()
-            pages = vacancies["pages"]
-            language_vacancies[language]["items"] += vacancies["items"]
-            language_vacancies[language]["found"] += len(vacancies["items"])
+            hh_vacancies = response.json()
+            pages = hh_vacancies["pages"]
+            language_vacancies[language]["items"] += hh_vacancies["items"]
+            language_vacancies[language]["found"] += len(hh_vacancies["items"])
             page += 1
             print(f"{language} :: {page} of {pages} :: Done")
 
     return language_vacancies
 
 
-def predict_rub_salary(vacancy):
+def get_all_sj_vacancies(access_token, client_secret, town, languages):
+    url = "https://api.superjob.ru/2.0/vacancies/"
+    headers = {
+        'X-Api-App-Id': client_secret,
+        "Authorization": f"Bearer {access_token}"
+    }
+    language_vacancies = {}
+    for language in languages:
+        language_vacancies[language] = {}
+        language_vacancies[language]["items"] = []
+        language_vacancies[language]["found"] = 0
+
+        is_more = True
+        page = 0
+        while is_more:
+            params = {
+                "town": town,
+                "keyword": language,
+                "count": 100,
+                "page": page
+            }
+            response = requests.get(url, headers=headers, params=params)
+            response.raise_for_status()
+            sj_vacancies = response.json()
+            is_more = sj_vacancies["more"]
+            page += 1
+            language_vacancies[language]["items"] += sj_vacancies["objects"]
+            language_vacancies[language]["found"] += len(sj_vacancies["objects"])
+            print(f"{language} :: {page} :: Done")
+
+    return language_vacancies
+
+
+def predict_hh_rub_salary(vacancy):
     salary = vacancy["salary"]
     if not salary:
         return None
@@ -79,16 +130,26 @@ def predict_rub_salary(vacancy):
     return int(salary["from"] + (salary["to"] - salary["from"]) / 2)
 
 
-def collect_average_salary(vacancies):
+def predict_sj_rub_salary(vacancy):
+    if not vacancy["payment_from"]:
+        if not vacancy["payment_to"]:
+            return None
+        return int(vacancy["payment_to"] * 0.8)
+    if not vacancy["payment_to"]:
+        return int(vacancy["payment_from"] * 1.2)
+    return int(vacancy["payment_from"] + (vacancy["payment_to"] - vacancy["payment_from"]) / 2)
+
+
+def collect_average_salary(vacancies, predict_func):
     language_salary = {}
-    for language, language_vacancies in all_vacancies.items():
+    for language, language_vacancies in vacancies.items():
         language_stat = {
             "vacancies_found": language_vacancies["found"]
         }
         sum_salary = 0
         salary_num = 0
         for vacancy in language_vacancies["items"]:
-            rub_salary = predict_rub_salary(vacancy)
+            rub_salary = predict_func(vacancy)
             if rub_salary is not None:
                 sum_salary += rub_salary
                 salary_num += 1
@@ -100,15 +161,24 @@ def collect_average_salary(vacancies):
 
 if __name__ == "__main__":
     load_dotenv()
-    client_id = os.getenv("CLIENT_ID")
-    client_secret = os.getenv("CLIENT_SECRET")
-    hh_token = os.getenv("CLIENT_TOKEN")
+    client_hh_id = os.getenv("HH_CLIENT_ID")
+    client_hh_secret = os.getenv("HH_CLIENT_SECRET")
+    hh_token = os.getenv("HH_CLIENT_TOKEN")
     if hh_token is None:
-        hh_token = get_access_token(client_id, client_secret)
+        hh_token = get_hh_access_token(client_hh_id, client_hh_secret)
 
     languages = (
         "Python", "Java"
     )
-    all_vacancies = get_all_vacancies(hh_token, 1, languages)
+    all_hh_vacancies = get_all_hh_vacancies(hh_token, 1, languages)
+    hh_average_salary = collect_average_salary(all_hh_vacancies, predict_hh_rub_salary)
+    print(hh_average_salary)
 
-    print(collect_average_salary(all_vacancies))
+    client_sj_id = os.getenv("SJ_CLIENT_ID")
+    client_sj_secret = os.getenv("SJ_CLIENT_SECRET")
+    sj_email = os.getenv("SJ_EMAIL")
+    sj_pass = os.getenv("SJ_PASSWORD")
+    sj_token = get_sj_access_token(sj_email, sj_pass, client_sj_id, client_sj_secret)
+    all_sj_vacancies = get_all_sj_vacancies(sj_token, client_sj_secret, 4, languages)
+    sj_average_salary = collect_average_salary(all_sj_vacancies, predict_sj_rub_salary)
+    print(sj_average_salary)
