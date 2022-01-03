@@ -33,12 +33,12 @@ def test_hh_token(access_token: str):
     return False
 
 
-def all_vacancies(access_token, area, languages):
+def get_all_vacancies(access_token, area, languages):
     url = "https://api.hh.ru/vacancies"
     headers = {
         "Authorization": f"Bearer {access_token}"
     }
-    language_founds = {}
+    language_vacancies = {}
     for language in languages:
         params = {
             "text": language,
@@ -47,10 +47,9 @@ def all_vacancies(access_token, area, languages):
         response = requests.get(url, headers=headers, params=params)
         response.raise_for_status()
         vacancies = response.json()
-        vacancies_count = vacancies["found"]
-        language_founds[language] = vacancies_count
+        language_vacancies[language] = vacancies
 
-    return language_founds
+    return language_vacancies
 
 
 def get_language_salary(access_token, language, area):
@@ -71,6 +70,21 @@ def get_language_salary(access_token, language, area):
     return vacancies_salary
 
 
+def predict_rub_salary(vacancy):
+    salary = vacancy["salary"]
+    if not salary:
+        return None
+    if salary["currency"] != "RUR":
+        return None
+    if salary["from"] is None:
+        if salary["to"] is None:
+            return None
+        return int(salary["to"] * 0.8)
+    if salary["to"] is None:
+        return int(salary["from"] * 1.2)
+    return int(salary["from"] + (salary["to"] - salary["from"]) / 2)
+
+
 if __name__ == "__main__":
     load_dotenv()
     client_id = os.getenv("CLIENT_ID")
@@ -80,12 +94,10 @@ if __name__ == "__main__":
         hh_token = get_access_token(client_id, client_secret)
 
     languages = (
-        "TypeScript", "C++", "PHP", "Python", "Java", "JS", "Ruby", "Go",
+        "Python",
     )
-    vacancies_count = all_vacancies(hh_token, 1, languages)
-    print(vacancies_count)
-
-    language = "Python"
-    vacancies_salary = get_language_salary(hh_token, language, 1)
-    print(vacancies_salary)
-
+    all_vacancies = get_all_vacancies(hh_token, 1, languages)
+    for language, language_vacancies in all_vacancies.items():
+        for vacancy in language_vacancies["items"]:
+            avg_salary = predict_rub_salary(vacancy)
+            print(f"{avg_salary}")
