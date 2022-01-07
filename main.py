@@ -135,7 +135,7 @@ def collect_average_salary(vacancies: dict, predictor: Callable) -> dict:
     return language_salary
 
 
-def print_statistic(stats, title):
+def get_statistic_table(stats: dict, title: str) -> AsciiTable:
     headers = [
         "Язык программирования",
         "Вакансий найдено",
@@ -148,7 +148,11 @@ def print_statistic(stats, title):
     for language, vacancies_params in stats.items():
         rows.append([language, *vacancies_params.values()])
 
-    table_instance = AsciiTable(rows, title)
+    return AsciiTable(rows, title)
+
+
+def print_statistic(stats, title):
+    table_instance = get_statistic_table(stats, title)
     print(table_instance.table)
 
 
