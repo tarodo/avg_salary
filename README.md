@@ -1,5 +1,5 @@
 # Salary collector
-Service to collect information about average salary for programmers from HeadHunter and SuperJob. 
+Service to collect information about average salary for programmers from [HeadHunter](https://hh.ru/) and [SuperJob](https://superjob.ru/). 
 
 ## Install
 Python3 should be already installed. Then use pip (or pip3, if there is a conflict with Python2) to install dependencies:
