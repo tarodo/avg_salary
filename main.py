@@ -88,11 +88,11 @@ def get_all_sj_vacancies(
 
 def get_average_salary(payment_from: int, payment_to: int) -> Optional[int]:
     """Return average value for two payments level"""
-    if payment_from is None:
-        if payment_to is None:
+    if not payment_from:
+        if not payment_to:
             return None
         return int(payment_to * 0.8)
-    if payment_to is None:
+    if not payment_to:
         return int(payment_from * 1.2)
     return int(payment_from + (payment_to - payment_from) / 2)
 
