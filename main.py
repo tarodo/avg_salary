@@ -40,7 +40,8 @@ def get_hh_vacancy(area: int, language: str) -> dict:
         hh_vacancies = response.json()
         pages = hh_vacancies["pages"]
         vacancy["items"] += hh_vacancies["items"]
-        vacancy["found"] += len(hh_vacancies["items"])
+        if page == 0:
+            vacancy["found"] = hh_vacancies["found"]
         page += 1
     return vacancy
 
@@ -75,7 +76,8 @@ def get_sj_vacancy(access_token: str, client_secret: str, town: int, language: s
         is_more = sj_vacancies["more"]
         page += 1
         vacancy["items"] += sj_vacancies["objects"]
-        vacancy["found"] += len(sj_vacancies["objects"])
+        if page == 1:
+            vacancy["found"] = sj_vacancies["total"]
 
     return vacancy
 
