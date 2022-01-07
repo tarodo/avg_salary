@@ -27,57 +27,66 @@ def get_sj_access_token(
         return None
 
 
+def get_hh_vacancy(area: int, language: str) -> dict:
+    """Retrieve info about salary for one language from HeadHunter"""
+    url = "https://api.hh.ru/vacancies"
+    vacancy = {"items": [], "found": 0}
+    page = 0
+    pages = 1
+    while page < pages:
+        params = {"text": language, "area": area, "per_page": 100, "page": page}
+        response = requests.get(url, params=params)
+        response.raise_for_status()
+        hh_vacancies = response.json()
+        pages = hh_vacancies["pages"]
+        vacancy["items"] += hh_vacancies["items"]
+        vacancy["found"] += len(hh_vacancies["items"])
+        page += 1
+    return vacancy
+
+
 def get_all_hh_vacancies(area: int, hh_languages: tuple) -> dict:
     """Collect vacancies from HeadHunter"""
-    url = "https://api.hh.ru/vacancies"
     language_vacancies = {}
     for language in hh_languages:
-        language_vacancies[language] = {}
-        language_vacancies[language]["items"] = []
-        language_vacancies[language]["found"] = 0
-        page = 0
-        pages = 1
-        while page < pages:
-            params = {"text": language, "area": area, "per_page": 100, "page": page}
-            response = requests.get(url, params=params)
-            response.raise_for_status()
-            hh_vacancies = response.json()
-            pages = hh_vacancies["pages"]
-            language_vacancies[language]["items"] += hh_vacancies["items"]
-            language_vacancies[language]["found"] += len(hh_vacancies["items"])
-            page += 1
+        language_vacancies[language] = get_hh_vacancy(area, language)
 
     return language_vacancies
+
+
+def get_sj_vacancy(access_token: str, client_secret: str, town: int, language: str) -> dict:
+    """Retrieve info about salary for one language from SuperJob"""
+    url = "https://api.superjob.ru/2.0/vacancies/"
+    headers = {"X-Api-App-Id": client_secret, "Authorization": f"Bearer {access_token}"}
+    vacancy = {"items": [], "found": 0}
+
+    is_more = True
+    page = 0
+    while is_more:
+        params = {
+            "town": town,
+            "keyword": language,
+            "count": 100,
+            "page": page,
+        }
+        response = requests.get(url, headers=headers, params=params)
+        response.raise_for_status()
+        sj_vacancies = response.json()
+        is_more = sj_vacancies["more"]
+        page += 1
+        vacancy["items"] += sj_vacancies["objects"]
+        vacancy["found"] += len(sj_vacancies["objects"])
+
+    return vacancy
 
 
 def get_all_sj_vacancies(
     access_token: str, client_secret: str, town: int, sj_languages: tuple
 ) -> dict:
     """Collect vacancies from SuperJob"""
-    url = "https://api.superjob.ru/2.0/vacancies/"
-    headers = {"X-Api-App-Id": client_secret, "Authorization": f"Bearer {access_token}"}
     language_vacancies = {}
     for language in sj_languages:
-        language_vacancies[language] = {}
-        language_vacancies[language]["items"] = []
-        language_vacancies[language]["found"] = 0
-
-        is_more = True
-        page = 0
-        while is_more:
-            params = {
-                "town": town,
-                "keyword": language,
-                "count": 100,
-                "page": page,
-            }
-            response = requests.get(url, headers=headers, params=params)
-            response.raise_for_status()
-            sj_vacancies = response.json()
-            is_more = sj_vacancies["more"]
-            page += 1
-            language_vacancies[language]["items"] += sj_vacancies["objects"]
-            language_vacancies[language]["found"] += len(sj_vacancies["objects"])
+        language_vacancies[language] = get_sj_vacancy(access_token, client_secret, town, language)
 
     return language_vacancies
 
