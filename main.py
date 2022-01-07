@@ -121,7 +121,6 @@ def collect_average_salary(vacancies: dict, predictor: Callable) -> dict:
     """
     language_salary = {}
     for language, language_vacancies in vacancies.items():
-        language_stat = {"vacancies_found": language_vacancies["found"]}
         sum_salary = 0
         salary_num = 0
         for vacancy in language_vacancies["items"]:
@@ -129,8 +128,9 @@ def collect_average_salary(vacancies: dict, predictor: Callable) -> dict:
             if rub_salary is not None:
                 sum_salary += rub_salary
                 salary_num += 1
-        language_stat["vacancies_processed"] = salary_num
-        language_stat["average_salary"] = int(sum_salary / salary_num)
+        language_stat = {"vacancies_found": language_vacancies["found"],
+                         "vacancies_processed": salary_num,
+                         "average_salary": int(sum_salary / salary_num)}
         language_salary[language] = language_stat
     return language_salary
 
