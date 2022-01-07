@@ -115,7 +115,7 @@ def predict_sj_rub_salary(vacancy: dict) -> Optional[int]:
 def collect_average_salary(vacancies: dict, predictor: Callable) -> dict:
     """
     Handle all vacancies from the platform.
-    :param vacancies: vacancies from platform language
+    :param vacancies: vacancies from platform
     :param predictor: function to predict salary of vacancy
     :return: language: {vacancies_found: int, vacancies_processed: int, average_salary: int}
     """
