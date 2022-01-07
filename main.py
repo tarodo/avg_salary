@@ -82,6 +82,17 @@ def get_all_sj_vacancies(
     return language_vacancies
 
 
+def get_average_salary(payment_from: int, payment_to: int) -> Optional[int]:
+    """Return average value for two payments level"""
+    if payment_from is None:
+        if payment_to is None:
+            return None
+        return int(payment_to * 0.8)
+    if payment_to is None:
+        return int(payment_from * 1.2)
+    return int(payment_from + (payment_to - payment_from) / 2)
+
+
 def predict_hh_rub_salary(vacancy: dict) -> Optional[int]:
     """Handle salary from one vacancy from HeadHunter"""
     salary = vacancy["salary"]
@@ -89,26 +100,12 @@ def predict_hh_rub_salary(vacancy: dict) -> Optional[int]:
         return None
     if salary["currency"] != "RUR":
         return None
-    if salary["from"] is None:
-        if salary["to"] is None:
-            return None
-        return int(salary["to"] * 0.8)
-    if salary["to"] is None:
-        return int(salary["from"] * 1.2)
-    return int(salary["from"] + (salary["to"] - salary["from"]) / 2)
+    return get_average_salary(salary["from"], salary["to"])
 
 
 def predict_sj_rub_salary(vacancy: dict) -> Optional[int]:
     """Handle salary from one vacancy from SuperJob"""
-    if not vacancy["payment_from"]:
-        if not vacancy["payment_to"]:
-            return None
-        return int(vacancy["payment_to"] * 0.8)
-    if not vacancy["payment_to"]:
-        return int(vacancy["payment_from"] * 1.2)
-    return int(
-        vacancy["payment_from"] + (vacancy["payment_to"] - vacancy["payment_from"]) / 2
-    )
+    return get_average_salary(vacancy["payment_from"], vacancy["payment_to"])
 
 
 def collect_average_salary(vacancies: dict, predictor: Callable) -> dict:
