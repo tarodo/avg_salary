@@ -1,3 +1,4 @@
+import itertools
 import os
 from typing import Optional, Callable
 
@@ -31,19 +32,16 @@ def get_hh_vacancy(area: int, language: str) -> dict:
     """Retrieve info about salary for one language from HeadHunter"""
     url = "https://api.hh.ru/vacancies"
     vacancy = {"items": [], "found": 0}
-    page = 0
-    pages = 1
-    while page < pages:
-        params = {"text": language, "area": area, "per_page": 100, "page": page}
+    for page in itertools.count(1, 1):
+        params = {"text": language, "area": area, "per_page": 100, "page": page - 1}
         response = requests.get(url, params=params)
         response.raise_for_status()
         hh_vacancies = response.json()
-        pages = hh_vacancies["pages"]
         vacancy["items"] += hh_vacancies["items"]
-        if page == 0:
+        if page == 1:
             vacancy["found"] = hh_vacancies["found"]
-        page += 1
-    return vacancy
+        if page >= hh_vacancies["pages"]:
+            return vacancy
 
 
 def get_all_hh_vacancies(area: int, hh_languages: tuple) -> dict:
@@ -61,25 +59,21 @@ def get_sj_vacancy(access_token: str, client_secret: str, town: int, language: s
     headers = {"X-Api-App-Id": client_secret, "Authorization": f"Bearer {access_token}"}
     vacancy = {"items": [], "found": 0}
 
-    is_more = True
-    page = 0
-    while is_more:
+    for page in itertools.count(1, 1):
         params = {
             "town": town,
             "keyword": language,
             "count": 100,
-            "page": page,
+            "page": page - 1,
         }
         response = requests.get(url, headers=headers, params=params)
         response.raise_for_status()
         sj_vacancies = response.json()
-        is_more = sj_vacancies["more"]
-        page += 1
         vacancy["items"] += sj_vacancies["objects"]
-        if page == 1:
+        if page == 0:
             vacancy["found"] = sj_vacancies["total"]
-
-    return vacancy
+        if not sj_vacancies["more"]:
+            return vacancy
 
 
 def get_all_sj_vacancies(
