@@ -10,7 +10,7 @@ from terminaltables import AsciiTable
 def get_sj_access_token(
         email, password, client_id: str, client_secret: str
 ) -> Optional[str]:
-    """Get access token to SuperJob api service"""
+    """Get access token to SuperJob api service."""
     url_auth = "https://api.superjob.ru/2.0/oauth2/password/"
     headers = {"X-Api-App-Id": client_secret}
     params = {
@@ -29,7 +29,7 @@ def get_sj_access_token(
 
 
 def get_hh_vacancy(area: int, language: str) -> dict:
-    """Retrieve info about salary for one language from HeadHunter"""
+    """Retrieve info about salary for one language from HeadHunter."""
     url = "https://api.hh.ru/vacancies"
     vacancy = {"items": [], "found": 0}
     params = {"text": language, "area": area, "per_page": 100}
@@ -46,7 +46,7 @@ def get_hh_vacancy(area: int, language: str) -> dict:
 
 
 def get_all_hh_vacancies(area: int, hh_languages: tuple) -> dict:
-    """Collect vacancies from HeadHunter"""
+    """Collect vacancies from HeadHunter."""
     language_vacancies = {}
     for language in hh_languages:
         language_vacancies[language] = get_hh_vacancy(area, language)
@@ -55,7 +55,7 @@ def get_all_hh_vacancies(area: int, hh_languages: tuple) -> dict:
 
 
 def get_sj_vacancy(access_token: str, client_secret: str, town: int, language: str) -> dict:
-    """Retrieve info about salary for one language from SuperJob"""
+    """Retrieve info about salary for one language from SuperJob."""
     url = "https://api.superjob.ru/2.0/vacancies/"
     headers = {"X-Api-App-Id": client_secret, "Authorization": f"Bearer {access_token}"}
     vacancy = {"items": [], "found": 0}
@@ -78,7 +78,7 @@ def get_sj_vacancy(access_token: str, client_secret: str, town: int, language: s
 def get_all_sj_vacancies(
         access_token: str, client_secret: str, town: int, sj_languages: tuple
 ) -> dict:
-    """Collect vacancies from SuperJob"""
+    """Collect vacancies from SuperJob."""
     language_vacancies = {}
     for language in sj_languages:
         language_vacancies[language] = get_sj_vacancy(access_token, client_secret, town, language)
@@ -87,7 +87,7 @@ def get_all_sj_vacancies(
 
 
 def get_average_salary(payment_from: int, payment_to: int) -> Optional[int]:
-    """Return average value for two payments level"""
+    """Return average value for two payments level."""
     if not payment_from:
         if not payment_to:
             return None
@@ -98,7 +98,7 @@ def get_average_salary(payment_from: int, payment_to: int) -> Optional[int]:
 
 
 def predict_hh_rub_salary(vacancy: dict) -> Optional[int]:
-    """Handle salary from one vacancy from HeadHunter"""
+    """Handle salary from one vacancy from HeadHunter."""
     salary = vacancy["salary"]
     if not salary:
         return None
@@ -108,16 +108,16 @@ def predict_hh_rub_salary(vacancy: dict) -> Optional[int]:
 
 
 def predict_sj_rub_salary(vacancy: dict) -> Optional[int]:
-    """Handle salary from one vacancy from SuperJob"""
+    """Handle salary from one vacancy from SuperJob."""
     return get_average_salary(vacancy["payment_from"], vacancy["payment_to"])
 
 
 def collect_average_salary(vacancies: dict, predictor: Callable) -> dict:
     """
-    Handle all vacancies from the platform.
-    :param vacancies: vacancies from platform
-    :param predictor: function to predict salary of vacancy
-    :return: language: {vacancies_found: int, vacancies_processed: int, average_salary: int}
+    Handle all vacancies from the platform;
+    :param vacancies: vacancies from platform;
+    :param predictor: function to predict salary of vacancy;
+    :return: language: {vacancies_found: int, vacancies_processed: int, average_salary: int}.
     """
     language_salary = {}
     for language, language_vacancies in vacancies.items():
@@ -161,15 +161,15 @@ if __name__ == "__main__":
 
     languages = (
         "Python",
-        # "Java",
-        # "C#",
-        # "PHP",
-        # "Go",
-        # "JavaScript",
-        # "Java",
-        # "VBA",
-        # "1С",
-        # "SQL",
+        "Java",
+        "C#",
+        "PHP",
+        "Go",
+        "JavaScript",
+        "Java",
+        "VBA",
+        "1С",
+        "SQL",
     )
     all_hh_vacancies = get_all_hh_vacancies(1, languages)
     hh_average_salary = collect_average_salary(all_hh_vacancies, predict_hh_rub_salary)
