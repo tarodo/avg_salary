@@ -6,24 +6,6 @@ from dotenv import load_dotenv
 from terminaltables import AsciiTable
 
 
-def get_hh_access_token(client_id: str, client_secret: str) -> Optional[str]:
-    """Get access token to HeadHunter api service"""
-    url_auth = "https://hh.ru/oauth/token"
-    headers = {"Content-Type": "application/x-www-form-urlencoded"}
-    request_body = {
-        "grant_type": "client_credentials",
-        "client_id": client_id,
-        "client_secret": client_secret,
-    }
-    response = requests.post(url_auth, data=request_body, headers=headers)
-    try:
-        response.raise_for_status()
-        return response.json()["access_token"]
-
-    except requests.exceptions.HTTPError:
-        return None
-
-
 def get_sj_access_token(
     email, password, client_id: str, client_secret: str
 ) -> Optional[str]:
@@ -45,10 +27,9 @@ def get_sj_access_token(
         return None
 
 
-def get_all_hh_vacancies(access_token: str, area: int, hh_languages: tuple) -> dict:
+def get_all_hh_vacancies(area: int, hh_languages: tuple) -> dict:
     """Collect vacancies from HeadHunter"""
     url = "https://api.hh.ru/vacancies"
-    headers = {"Authorization": f"Bearer {access_token}"}
     language_vacancies = {}
     for language in hh_languages:
         language_vacancies[language] = {}
@@ -58,7 +39,7 @@ def get_all_hh_vacancies(access_token: str, area: int, hh_languages: tuple) -> d
         pages = 1
         while page < pages:
             params = {"text": language, "area": area, "per_page": 100, "page": page}
-            response = requests.get(url, headers=headers, params=params)
+            response = requests.get(url, params=params)
             response.raise_for_status()
             hh_vacancies = response.json()
             pages = hh_vacancies["pages"]
@@ -172,25 +153,20 @@ def print_statistic(stats, title):
 
 if __name__ == "__main__":
     load_dotenv()
-    client_hh_id = os.getenv("HH_CLIENT_ID")
-    client_hh_secret = os.getenv("HH_CLIENT_SECRET")
-    hh_token = os.getenv("HH_CLIENT_TOKEN")
-    if hh_token is None:
-        hh_token = get_hh_access_token(client_hh_id, client_hh_secret)
 
     languages = (
         "Python",
-        "Java",
-        "C#",
-        "PHP",
-        "Go",
-        "JavaScript",
-        "Java",
-        "VBA",
-        "1С",
-        "SQL",
+        # "Java",
+        # "C#",
+        # "PHP",
+        # "Go",
+        # "JavaScript",
+        # "Java",
+        # "VBA",
+        # "1С",
+        # "SQL",
     )
-    all_hh_vacancies = get_all_hh_vacancies(hh_token, 1, languages)
+    all_hh_vacancies = get_all_hh_vacancies(1, languages)
     hh_average_salary = collect_average_salary(all_hh_vacancies, predict_hh_rub_salary)
 
     client_sj_id = os.getenv("SJ_CLIENT_ID")
