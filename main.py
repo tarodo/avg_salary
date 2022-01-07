@@ -8,7 +8,7 @@ from terminaltables import AsciiTable
 
 
 def get_sj_access_token(
-    email, password, client_id: str, client_secret: str
+        email, password, client_id: str, client_secret: str
 ) -> Optional[str]:
     """Get access token to SuperJob api service"""
     url_auth = "https://api.superjob.ru/2.0/oauth2/password/"
@@ -32,8 +32,9 @@ def get_hh_vacancy(area: int, language: str) -> dict:
     """Retrieve info about salary for one language from HeadHunter"""
     url = "https://api.hh.ru/vacancies"
     vacancy = {"items": [], "found": 0}
+    params = {"text": language, "area": area, "per_page": 100}
     for page in itertools.count(1, 1):
-        params = {"text": language, "area": area, "per_page": 100, "page": page - 1}
+        params["page"] = page - 1
         response = requests.get(url, params=params)
         response.raise_for_status()
         hh_vacancies = response.json()
@@ -58,26 +59,24 @@ def get_sj_vacancy(access_token: str, client_secret: str, town: int, language: s
     url = "https://api.superjob.ru/2.0/vacancies/"
     headers = {"X-Api-App-Id": client_secret, "Authorization": f"Bearer {access_token}"}
     vacancy = {"items": [], "found": 0}
+    params = {"town": town,
+              "keyword": language,
+              "count": 100, }
 
     for page in itertools.count(1, 1):
-        params = {
-            "town": town,
-            "keyword": language,
-            "count": 100,
-            "page": page - 1,
-        }
+        params["page"] = page - 1
         response = requests.get(url, headers=headers, params=params)
         response.raise_for_status()
         sj_vacancies = response.json()
         vacancy["items"] += sj_vacancies["objects"]
-        if page == 0:
+        if page == 1:
             vacancy["found"] = sj_vacancies["total"]
         if not sj_vacancies["more"]:
             return vacancy
 
 
 def get_all_sj_vacancies(
-    access_token: str, client_secret: str, town: int, sj_languages: tuple
+        access_token: str, client_secret: str, town: int, sj_languages: tuple
 ) -> dict:
     """Collect vacancies from SuperJob"""
     language_vacancies = {}
