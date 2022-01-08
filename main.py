@@ -148,12 +148,7 @@ def get_statistic_table(stats: dict, title: str) -> AsciiTable:
     for language, vacancies_params in stats.items():
         rows.append([language, *vacancies_params.values()])
 
-    return AsciiTable(rows, title)
-
-
-def print_statistic(stats, title):
-    table_instance = get_statistic_table(stats, title)
-    print(table_instance.table)
+    return AsciiTable(rows, title).table
 
 
 if __name__ == "__main__":
@@ -182,5 +177,5 @@ if __name__ == "__main__":
     all_sj_vacancies = get_all_sj_vacancies(sj_token, client_sj_secret, 4, languages)
     sj_average_salary = collect_average_salary(all_sj_vacancies, predict_sj_rub_salary)
 
-    print_statistic(hh_average_salary, "HeadHunter Moscow")
-    print_statistic(sj_average_salary, "SuperJob Moscow")
+    print(get_statistic_table(hh_average_salary, "HeadHunter Moscow"))
+    print(get_statistic_table(sj_average_salary, "SuperJob Moscow"))
