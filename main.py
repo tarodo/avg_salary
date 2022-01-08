@@ -106,8 +106,11 @@ def collect_average_salary(vacancies: dict, predictor: Callable) -> dict:
                 sum_salary += rub_salary
                 salary_num += 1
         language_stat = {"vacancies_found": language_vacancies["found"],
-                         "vacancies_processed": salary_num,
-                         "average_salary": int(sum_salary / salary_num)}
+                         "vacancies_processed": salary_num}
+        if salary_num == 0:
+            language_stat["average_salary"] = 0
+        else:
+            language_stat["average_salary"] = int(sum_salary / salary_num)
         language_salary[language] = language_stat
     return language_salary
 
