@@ -7,27 +7,6 @@ from dotenv import load_dotenv
 from terminaltables import AsciiTable
 
 
-def get_sj_access_token(
-        email, password, client_id: str, client_secret: str
-) -> Optional[str]:
-    """Get access token to SuperJob api service."""
-    url_auth = "https://api.superjob.ru/2.0/oauth2/password/"
-    headers = {"X-Api-App-Id": client_secret}
-    params = {
-        "login": email,
-        "password": password,
-        "client_id": client_id,
-        "client_secret": client_secret,
-    }
-    response = requests.post(url_auth, params=params, headers=headers)
-    try:
-        response.raise_for_status()
-        return response.json()["access_token"]
-
-    except requests.exceptions.HTTPError:
-        return None
-
-
 def get_hh_vacancy(area: int, language: str) -> dict:
     """Retrieve info about salary for one language from HeadHunter."""
     url = "https://api.hh.ru/vacancies"
@@ -54,10 +33,10 @@ def get_all_hh_vacancies(area: int, hh_languages: tuple) -> dict:
     return language_vacancies
 
 
-def get_sj_vacancy(access_token: str, client_secret: str, town: int, language: str) -> dict:
+def get_sj_vacancy(client_secret: str, town: int, language: str) -> dict:
     """Retrieve info about salary for one language from SuperJob."""
     url = "https://api.superjob.ru/2.0/vacancies/"
-    headers = {"X-Api-App-Id": client_secret, "Authorization": f"Bearer {access_token}"}
+    headers = {"X-Api-App-Id": client_secret}
     vacancy = {"items": [], "found": 0}
     params = {"town": town,
               "keyword": language,
@@ -76,12 +55,12 @@ def get_sj_vacancy(access_token: str, client_secret: str, town: int, language: s
 
 
 def get_all_sj_vacancies(
-        access_token: str, client_secret: str, town: int, sj_languages: tuple
+        client_secret: str, town: int, sj_languages: tuple
 ) -> dict:
     """Collect vacancies from SuperJob."""
     language_vacancies = {}
     for language in sj_languages:
-        language_vacancies[language] = get_sj_vacancy(access_token, client_secret, town, language)
+        language_vacancies[language] = get_sj_vacancy(client_secret, town, language)
 
     return language_vacancies
 
@@ -100,9 +79,7 @@ def get_average_salary(payment_from: int, payment_to: int) -> Optional[int]:
 def predict_hh_rub_salary(vacancy: dict) -> Optional[int]:
     """Handle salary from one vacancy from HeadHunter."""
     salary = vacancy["salary"]
-    if not salary:
-        return None
-    if salary["currency"] != "RUR":
+    if not salary or salary["currency"] != "RUR":
         return None
     return get_average_salary(salary["from"], salary["to"])
 
@@ -173,8 +150,7 @@ if __name__ == "__main__":
     client_sj_secret = os.getenv("SJ_CLIENT_SECRET")
     sj_email = os.getenv("SJ_EMAIL")
     sj_pass = os.getenv("SJ_PASSWORD")
-    sj_token = get_sj_access_token(sj_email, sj_pass, client_sj_id, client_sj_secret)
-    all_sj_vacancies = get_all_sj_vacancies(sj_token, client_sj_secret, 4, languages)
+    all_sj_vacancies = get_all_sj_vacancies(client_sj_secret, 4, languages)
     sj_average_salary = collect_average_salary(all_sj_vacancies, predict_sj_rub_salary)
 
     print(get_statistic_table(hh_average_salary, "HeadHunter Moscow"))
