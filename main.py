@@ -24,10 +24,10 @@ def get_hh_vacancy(area: int, language: str) -> dict:
             return vacancy
 
 
-def get_all_hh_vacancies(area: int, hh_languages: tuple) -> dict:
+def get_hh_vacancies(area: int, languages: tuple) -> dict:
     """Collect vacancies from HeadHunter."""
     language_vacancies = {}
-    for language in hh_languages:
+    for language in languages:
         language_vacancies[language] = get_hh_vacancy(area, language)
 
     return language_vacancies
@@ -54,12 +54,12 @@ def get_sj_vacancy(client_secret: str, town: int, language: str) -> dict:
             return vacancy
 
 
-def get_all_sj_vacancies(
-        client_secret: str, town: int, sj_languages: tuple
+def get_sj_vacancies(
+        client_secret: str, town: int, languages: tuple
 ) -> dict:
     """Collect vacancies from SuperJob."""
     language_vacancies = {}
-    for language in sj_languages:
+    for language in languages:
         language_vacancies[language] = get_sj_vacancy(client_secret, town, language)
 
     return language_vacancies
@@ -73,7 +73,7 @@ def get_average_salary(payment_from: int, payment_to: int) -> Optional[int]:
         return int(payment_to * 0.8)
     if not payment_to:
         return int(payment_from * 1.2)
-    return int(payment_from + (payment_to - payment_from) / 2)
+    return (payment_from + payment_to) // 2
 
 
 def predict_hh_rub_salary(vacancy: dict) -> Optional[int]:
@@ -143,14 +143,14 @@ if __name__ == "__main__":
         "1С",
         "SQL",
     )
-    all_hh_vacancies = get_all_hh_vacancies(1, languages)
+    all_hh_vacancies = get_hh_vacancies(1, languages)
     hh_average_salary = collect_average_salary(all_hh_vacancies, predict_hh_rub_salary)
 
     client_sj_id = os.getenv("SJ_CLIENT_ID")
     client_sj_secret = os.getenv("SJ_CLIENT_SECRET")
     sj_email = os.getenv("SJ_EMAIL")
     sj_pass = os.getenv("SJ_PASSWORD")
-    all_sj_vacancies = get_all_sj_vacancies(client_sj_secret, 4, languages)
+    all_sj_vacancies = get_sj_vacancies(client_sj_secret, 4, languages)
     sj_average_salary = collect_average_salary(all_sj_vacancies, predict_sj_rub_salary)
 
     print(get_statistic_table(hh_average_salary, "HeadHunter Moscow"))
