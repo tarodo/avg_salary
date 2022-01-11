@@ -151,10 +151,7 @@ if __name__ == "__main__":
     all_hh_vacancies = get_hh_vacancies(1, languages)
     hh_average_salary = collect_average_salary(all_hh_vacancies, predict_hh_rub_salary)
 
-    client_sj_id = os.getenv("SJ_CLIENT_ID")
     client_sj_secret = os.getenv("SJ_CLIENT_SECRET")
-    sj_email = os.getenv("SJ_EMAIL")
-    sj_pass = os.getenv("SJ_PASSWORD")
     all_sj_vacancies = get_sj_vacancies(client_sj_secret, 4, languages)
     sj_average_salary = collect_average_salary(all_sj_vacancies, predict_sj_rub_salary)
 
