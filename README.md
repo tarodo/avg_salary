@@ -8,7 +8,7 @@ pip install -r requirements.txt
 ```
 ## Env Settings
 Create `.env` from `.env.Example`
-1. SJ_CLIENT_SECRET - str, your secret key from [SuperJob API](https://api.superjob.ru/info/)
+1. SJ_SECRET - str, your secret key from [SuperJob API](https://api.superjob.ru/info/)
 
 ## Start
 ```
