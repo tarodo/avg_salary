@@ -86,7 +86,9 @@ def predict_hh_rub_salary(vacancy: dict) -> Optional[int]:
 
 def predict_sj_rub_salary(vacancy: dict) -> Optional[int]:
     """Handle salary from one vacancy from SuperJob."""
-    return get_average_salary(vacancy["payment_from"], vacancy["payment_to"])
+    if vacancy['currency'] == 'rub':
+        return get_average_salary(vacancy["payment_from"], vacancy["payment_to"])
+    return None
 
 
 def collect_average_salary(vacancies: dict, predictor: Callable) -> dict:
@@ -102,12 +104,12 @@ def collect_average_salary(vacancies: dict, predictor: Callable) -> dict:
         salary_num = 0
         for vacancy in language_vacancies["items"]:
             rub_salary = predictor(vacancy)
-            if not rub_salary:
+            if rub_salary:
                 sum_salary += rub_salary
                 salary_num += 1
         language_stat = {"vacancies_found": language_vacancies["found"],
                          "vacancies_processed": salary_num}
-        if salary_num == 0:
+        if not salary_num:
             language_stat["average_salary"] = 0
         else:
             language_stat["average_salary"] = int(sum_salary / salary_num)
@@ -135,15 +137,15 @@ if __name__ == "__main__":
     load_dotenv()
 
     languages = (
-        "Python",
-        "Java",
-        "C#",
-        "PHP",
-        "Go",
-        "JavaScript",
-        "Java",
-        "VBA",
-        "1С",
+        # "Python",
+        # "Java",
+        # "C#",
+        # "PHP",
+        # "Go",
+        # "JavaScript",
+        # "Java",
+        # "VBA",
+        # "1С",
         "SQL",
     )
     all_hh_vacancies = get_hh_vacancies(1, languages)
